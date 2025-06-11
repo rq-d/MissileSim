@@ -24,7 +24,6 @@ xmc = 0.40387
 
 TAKEOFF_ANGLE = 70.0
 LANDATX = -18000.0
-# LANDATX = -15750.0
 PRONAVGAIN = 25
 
 pitch_pid = [0.01, 0.02,1.8]  # 1.5 meter miss params
@@ -523,8 +522,8 @@ def world(seed: int = 0) -> el.World:
                 inertia=el.SpatialInertia(3.0, jnp.array([0.1, 1.0, 1.0])),
             ),
             Rocket(),
-            # w.glb("https://storage.googleapis.com/elodin-assets/aim.glb"),
-            w.glb("https://storage.googleapis.com/elodin-assets/rocket.glb"),
+            w.glb("https://storage.googleapis.com/elodin-assets/aim.glb"),
+            # w.glb("https://storage.googleapis.com/elodin-assets/rocket.glb"),
         ],
         name="Rocket",
     )
@@ -533,11 +532,9 @@ def world(seed: int = 0) -> el.World:
     ball_color = w.insert_asset(el.Material.color(12.7, 9.2, 0.5))
     target = w.spawn(
             [
-                # el.Body(world_pos=el.SpatialTransform(linear=jnp.array([-2835.4, 0.0, 1.0]))), # location of impact without PID
                 el.Body(world_pos=el.SpatialTransform(linear=jnp.array([LANDATX, 0.0, 1.0]))), # moved closer 100 meters
                 el.Shape(ball_mesh, ball_color),
-                # WindData(seed=jnp.int64(seed)),
-                # w.glb("https://storage.googleapis.com/elodin-assets/drone.glb")
+
             ],
             name="target",
         )
