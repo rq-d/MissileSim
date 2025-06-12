@@ -437,8 +437,9 @@ def accel_setpoint_smooth(a: AccelSetpoint, a_s: AccelSetpointSmooth) -> AccelSe
     return a_s + (a - a_s) * jnp.exp(-exp_decay_constant * dt)
 
 @el.map
-def pronav_setpoint(accel: ProNavSetpoint, p: el.WorldPos, v:el.WorldVel, th: Thrust) -> ProNavSetpoint:
+def pronav_setpoint(accel: ProNavSetpoint, p: el.WorldPos, v:el.WorldVel) -> ProNavSetpoint:
 
+    # posst
     # target
     r_t = jnp.array([LANDATX, 0.0, 1.0]) # lands at 16625
     v_t = jnp.array([0,0,0])
