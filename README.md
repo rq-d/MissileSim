@@ -30,3 +30,8 @@ Modeled a 4mm carbon airframe around the rocket (motor, electronics, warhead)
 - Total Mass: 15.23kg
 - Principal moments of inertia at center of mass (SW coordinate system is rotated differently than body frame. origin at missile base)
   - 0.01, 2.39, 2.39 Px, Py, Pz
+
+Aero and Mass Properties
+
+- using aero coefficients and math from example given.
+- Mass properties are coming from my solidworks model.

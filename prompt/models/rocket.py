@@ -12,9 +12,18 @@ from  utils import math
 
 # constants
 thrust_vector_body_frame = jnp.array([-1.0, 0.0, 0.0])
-a_ref = 24.89130 / 100**2
+a_ref = 24.89130 / 100**2 #  reference area from cfd
 l_ref = 5.43400 / 100
 xmc = 0.40387
+SIM_TIME_STEP = 1.0 / 60.0
+lp_sample_freq = round(1.0 / SIM_TIME_STEP)
+lp_buffer_size = lp_sample_freq * 4
+lp_cutoff_freq = 1
+PRONAVGAIN = 24
+pitch_pid = [0.05, 0.0,0.0]
+
+LANDATX = 10000 # TODO MAKE THIS AN INPUT THIS IS TEMPORARY TARGET LOCATION
+
 aero_df = pl.from_dict({
     'Mach': [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9],
     'Alphac': [0.0, 5.0, 10.0, 15.0, 0.0, 5.0, 10.0, 15.0, 0.0, 5.0, 10.0, 15.0, 0.0, 5.0, 10.0, 15.0, 0.0, 5.0, 10.0, 15.0, 0.0, 5.0, 10.0, 15.0, 0.0, 5.0, 10.0, 15.0, 0.0, 5.0, 10.0, 15.0, 0.0, 5.0, 10.0, 15.0, 0.0, 5.0, 10.0, 15.0, 0.0, 5.0, 10.0, 15.0, 0.0, 5.0, 10.0, 15.0, 0.0, 5.0, 10.0, 15.0, 0.0, 5.0, 10.0, 15.0, 0.0, 5.0, 10.0, 15.0],
@@ -46,6 +55,41 @@ def parse(filename):
           data["thrust"].append(float(thrust_val))
   return data
 thrust_curve = parse(os.path.dirname(os.path.abspath(__file__))+"/data/AeroTech_M685W.txt")
+
+def second_order_butterworth(
+    signal: jax.Array, f_sampling: int, f_cutoff: int, method: str = "forward"
+) -> jax.Array:
+    "https://stackoverflow.com/questions/20924868/calculate-coefficients-of-2nd-order-butterworth-low-pass-filter"
+    if method == "forward_backward":
+        signal = second_order_butterworth(signal, f_sampling, f_cutoff, "forward")
+        return second_order_butterworth(signal, f_sampling, f_cutoff, "backward")
+    elif method == "forward":
+        pass
+    elif method == "backward":
+        signal = jnp.flip(signal, axis=0)
+    else:
+        raise NotImplementedError
+    ff = f_cutoff / f_sampling
+    ita = 1.0 / jnp.tan(jnp.pi * ff)
+    q = jnp.sqrt(2.0)
+    b0 = 1.0 / (1.0 + q * ita + ita**2)
+    b1 = 2 * b0
+    b2 = b0
+    a1 = 2.0 * (ita**2 - 1.0) * b0
+    a2 = -(1.0 - q * ita + ita**2) * b0
+
+    def f(carry, x_i):
+        x_im1, x_im2, y_im1, y_im2 = carry
+        y_i = b0 * x_i + b1 * x_im1 + b2 * x_im2 + a1 * y_im1 + a2 * y_im2
+        return (x_i, x_im1, y_i, y_im1), y_i
+
+    init = (signal[1], signal[0]) * 2
+    signal = jax.lax.scan(f, init, signal[2:])[1]
+    signal = jnp.concatenate((signal[0:1],) * 2 + (signal,))
+    if method == "backward":
+        signal = jnp.flip(signal, axis=0)
+    return signal
+
 
 def aero_interp_table(df: pl.DataFrame) -> jax.Array:
     coefs = ["CmR", "CA", "CZR"]
@@ -96,6 +140,73 @@ Wind = ty.Annotated[
         metadata={"element_names": "x,y,z"},
     ),
 ]
+AccelSetpointSmooth = ty.Annotated[
+    jax.Array,
+    el.Component(
+        "accel_setpoint_smooth",
+        el.ComponentType(el.PrimitiveType.F64, (2,)),
+        metadata={"element_names": "p,y", "priority": 100},
+    ),
+]
+AccelSetpoint = ty.Annotated[
+    jax.Array,
+    el.Component(
+        "accel_setpoint",
+        el.ComponentType(el.PrimitiveType.F64, (2,)),
+        metadata={"element_names": "p,y", "priority": 101},
+    ),
+]
+ProNavSetpoint = ty.Annotated[
+    jax.Array,
+    el.Component(
+        "pronav_setpoint",
+        el.ComponentType(el.PrimitiveType.F64, (2,)),
+        metadata={"element_names": "p,y", "priority": 100},
+    ),
+]
+VRelAccel = ty.Annotated[
+    jax.Array,
+    el.Component(
+        "v_rel_accel",
+        el.ComponentType(el.PrimitiveType.F64, (3,)),
+        metadata={"element_names": "x,y,z", "priority": 20},
+    ),
+]
+
+VRelAccelBuffer = ty.Annotated[
+    jax.Array,
+    el.Component(
+        "v_rel_accel_buffer",
+        el.ComponentType(el.PrimitiveType.F64, (lp_buffer_size, 3)),
+        metadata={"priority": -1},
+    ),
+]
+
+VRelAccelFiltered = ty.Annotated[
+    jax.Array,
+    el.Component(
+        "v_rel_accel_filtered",
+        el.ComponentType(el.PrimitiveType.F64, (3,)),
+        metadata={"element_names": "x,y,z", "priority": 19},
+    ),
+]
+PitchPID = ty.Annotated[
+    jax.Array,
+    el.Component(
+        "pitch_pid",
+        el.ComponentType(el.PrimitiveType.F64, (3,)),
+        metadata={"element_names": "Kp,Ki,Kd"},
+    ),
+]
+
+PitchPIDState = ty.Annotated[
+    jax.Array,
+    el.Component(
+        "pitch_pid_state",
+        el.ComponentType(el.PrimitiveType.F64, (3,)),
+        metadata={"element_names": "e,i,d", "priority": 18},
+    ),
+]
 
 @el.dataclass
 class Rocket(el.Archetype):
@@ -103,13 +214,29 @@ class Rocket(el.Archetype):
   motor: Motor = field(default_factory=lambda: jnp.float64(0.0))
   aero_force: AeroForce = field(default_factory=lambda: el.SpatialForce())
   aero_coefs: AeroCoefs = field(default_factory=lambda: jnp.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]))
-  center_of_gravity: CenterOfGravity = field(default_factory=lambda: jnp.float64(0.74))
+  center_of_gravity: CenterOfGravity = field(default_factory=lambda: jnp.float64(0.2)) # real CG is 0.74 from SW data
   dynamic_pressure: DynamicPressure = field(default_factory=lambda: jnp.float64(0.0))
   mach: Mach = field(default_factory=lambda: jnp.float64(0.0))
   angle_of_attack: AngleOfAttack = field(default_factory=lambda: jnp.array([0.0]))
   fin_deflect: FinDeflect = field(default_factory=lambda: jnp.float64(0.0))
   fin_control: FinControl = field(default_factory=lambda: jnp.float64(0.0))
   wind: Wind = field(default_factory=lambda: jnp.array([0.0, 0.0, 0.0]))
+  
+  v_rel_accel_buffer: VRelAccelBuffer = field(
+        default_factory=lambda: jnp.zeros((lp_buffer_size, 3))
+    )
+  v_rel_accel: VRelAccel = field(default_factory=lambda: jnp.array([0.0, 0.0, 0.0]))
+  v_rel_accel_filtered: VRelAccelFiltered = field(
+        default_factory=lambda: jnp.array([0.0, 0.0, 0.0])
+    )
+  accel_setpoint: AccelSetpoint = field(default_factory=lambda: jnp.array([0.0, 0.0]))
+  accel_setpoint_smooth: AccelSetpointSmooth = field(default_factory=lambda: jnp.array([0.0, 0.0]))
+  pronav_setpoint: ProNavSetpoint = field(
+        default_factory=lambda: jnp.array([0.0,0.0])
+    )
+  pitch_pid: PitchPID = field(default_factory=lambda: jnp.array(pitch_pid))
+  pitch_pid_state: PitchPIDState = field(default_factory=lambda: jnp.array([0.0, 0.0, 0.0]))
+  
 
 # --------------Models Related to the Rocket--------------
 
@@ -123,6 +250,83 @@ def apply_aero_forces(
 ) -> el.Force:
     # convert from body frame to world frame
     return f + p.angular() @ f_aero
+
+@el.map
+def pitch_pid_state(
+    a_setpoint: ProNavSetpoint,
+    a_rel: VRelAccelFiltered,
+    s: PitchPIDState,
+) -> PitchPIDState:
+    # a_setpoint = jnp.array([0,0]) # test code
+    e = a_rel[2] - a_setpoint[0]
+    i = jnp.clip(s[1] + e * SIM_TIME_STEP * 2, -2.0, 2.0)
+    d = e - s[0]
+    pid_state = jnp.array([e, i, d])
+    return pid_state
+
+@el.map
+def pitch_pid_control(pid: PitchPID, s: PitchPIDState) -> FinControl:
+    Kp, Ki, Kd = pid
+    e, i, d = s
+    mv = Kp * e + Ki * i + Kd * d
+    fin_control = mv * SIM_TIME_STEP
+    return fin_control
+
+# ProNav works on y and z axes but PID code is implemented y
+@el.map
+def pronav_setpoint(accel: ProNavSetpoint, p: el.WorldPos, v:el.WorldVel) -> ProNavSetpoint:
+
+    # target
+    r_t = jnp.array([LANDATX, 0.0, 1.0]) 
+    v_t = jnp.array([0,0,0])
+
+    # missile
+    r_m = jnp.array([p.linear()[0], p.linear()[1], p.linear()[2]])
+    v_m = jnp.array([v.linear()[0], v.linear()[1], v.linear()[2]])
+
+    v_r = v_t - v_m
+    a = PRONAVGAIN *jnp.linalg.norm(v_r) * v_m / jnp.linalg.norm(v_m)
+    r=r_t-r_m
+    b = jnp.cross(r,v_r) / jnp.dot(r,r)
+    res = jnp.cross(a,b)
+    dist2target = jnp.linalg.norm(r)
+    accel = jnp.array([res[0],res[1]])
+
+    # applies ProNav when distance is close to target
+    return jax.lax.cond(
+        # dist2target < 7000.0,    # condition to be met
+        False, # always on
+        lambda _: accel,   # if true return value
+        lambda _: jnp.array([0.0,0.0]),    # if false return valuec
+        operand=None,
+    )
+
+
+@el.map
+def v_rel_accel_buffer(a_rel: VRelAccel, buffer: VRelAccelBuffer) -> VRelAccelBuffer:
+    return jnp.concatenate((buffer[1:], a_rel.reshape(1, 3)))
+
+@el.map
+def v_rel_accel(v: el.WorldVel, a: el.WorldAccel) -> VRelAccel:
+    v = jax.lax.cond(
+        la.norm(v.linear()) < 1e-6,
+        lambda _: thrust_vector_body_frame,
+        lambda _: v.linear(),
+        operand=None,
+    )
+    v_rot = math.quat_from_vecs(thrust_vector_body_frame, v)
+    a_rel = v_rot.inverse() @ a.linear()
+    return a_rel
+
+@el.map
+def v_rel_accel_filtered(s: VRelAccelBuffer) -> VRelAccelFiltered:
+    return second_order_butterworth(s, lp_sample_freq, lp_cutoff_freq)[-1]
+
+@el.map
+def accel_setpoint_smooth(a: AccelSetpoint, a_s: AccelSetpointSmooth) -> AccelSetpointSmooth:
+    dt = SIM_TIME_STEP
+    exp_decay_constant = 0.5
+    return a_s + (a - a_s) * jnp.exp(-exp_decay_constant * dt)
 
 @el.map
 def fin_control(fd: FinDeflect, fc: FinControl, mach: Mach) -> FinDeflect:

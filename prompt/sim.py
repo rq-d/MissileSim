@@ -9,15 +9,11 @@ import polars as pl
 from jax.scipy.ndimage import map_coordinates
 import matplotlib.pyplot as plt
 import numpy as np
-import csv
-import os
 import models.rocket
 import utils.math as math
 import models.models 
 # import models.rocket
-
 SIM_TIME_STEP = 1.0 / 60.0
-
 
 def world(takeOffPitch: float = 45.0, missileMass: float = 15.23) -> el.World:
   w = el.World()
@@ -38,40 +34,53 @@ def world(takeOffPitch: float = 45.0, missileMass: float = 15.23) -> el.World:
     name = "Rocket",
   )
   target = w.spawn(
-            [
-                el.Body(
-                   world_pos=el.SpatialTransform(linear=jnp.array([-22451.0, 0.0, 0.01])),
-                   world_vel=el.SpatialTransform(el.WorldVel(linear=jnp.array([10.0, 0.0, 0.0])))
-                   ), 
-                el.Shape(ball_mesh, ball_color),
-                # Target(),
-            ],
-            name="target",
-        )
+    [
+      el.Body(
+        world_pos=el.SpatialTransform(linear=jnp.array([-22451.0, 0.0, 0.01])),
+        world_vel=el.SpatialTransform(el.WorldVel(linear=jnp.array([10.0, 0.0, 0.0])))
+          ), 
+      el.Shape(ball_mesh, ball_color),
+      # Target(),
+    ],
+    name="target",
+)
 
 
   # ------------ Visualize 
   w.spawn(
-    el.Panel.hsplit(
-      el.Panel.vsplit(
-        el.Panel.viewport(
-          track_entity=rocket,
-          track_rotation=False,
-          pos=[5.0, 0.0, 1.0],
-          looking_at=[0.0, 0.0, 0.0],
-          show_grid=True,
-        ),
-        active=True,
-      ),
-      el.Panel.viewport(
-          track_entity=target,
-          track_rotation=False,
-          pos=[5.0, 0.0, 1.0],
-          looking_at=[0.0, 0.0, 0.0],
-          show_grid=True,
-        ),
+        el.Panel.hsplit(
+            el.Panel.vsplit(
+                el.Panel.viewport(
+                    track_entity=rocket,
+                    track_rotation=False,
+                    pos=[5.0, 0.0, 1.0],
+                    looking_at=[0.0, 0.0, 0.0],
+                    show_grid=True,
+                ),
+                el.Panel.viewport(
+                    track_entity=target,
+                    track_rotation=False,
+                    pos=[5.0, 0.0, 1.0],
+                    looking_at=[0.0, 0.0, 0.0],
+                    show_grid=True,
+                ),
+            ),
+            el.Panel.vsplit(
+                el.Panel.graph(el.GraphEntity(rocket, models.rocket.FinDeflect)),
+                el.Panel.graph(el.GraphEntity(rocket, models.rocket.AngleOfAttack)),
+            ),
+            el.Panel.vsplit(
+                el.Panel.graph(el.GraphEntity(rocket, models.rocket.ProNavSetpoint)),
+                el.Panel.graph(el.GraphEntity(rocket, models.rocket.AccelSetpointSmooth)),
+            ),
+            el.Panel.vsplit(
+                el.Panel.graph(el.GraphEntity(rocket, el.WorldPos)),
+                el.Panel.graph(el.GraphEntity(rocket, el.WorldAccel)),
+            ),
+            
+            active=True,
+        )
     )
-  )
   return w
 
 def system() -> el.System:
@@ -82,6 +91,16 @@ def system() -> el.System:
                     | models.rocket.aero_coefs
                     | models.rocket.aero_forces
                     | models.rocket.thrust
+
+ 
+                    | models.rocket.accel_setpoint_smooth
+                    | models.rocket.v_rel_accel
+                    | models.rocket.v_rel_accel_buffer
+                    | models.rocket.v_rel_accel_filtered
+                    | models.rocket.pronav_setpoint
+                    | models.rocket.pitch_pid_state
+                    | models.rocket.pitch_pid_control
+
     )
     effectors = models.models.gravity | models.rocket.apply_thrust | models.rocket.apply_aero_forces
     sys = non_effectors | el.six_dof(sys=effectors, integrator=el.Integrator.Rk4)

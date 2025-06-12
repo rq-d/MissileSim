@@ -26,3 +26,11 @@ def to_coord(s: pl.Series, val: jax.Array) -> jax.Array:
     s_max = s.max()
     s_count = len(s.unique())
     return (val - s_min) * (s_count - 1) / jnp.clip(s_max - s_min, 1e-06)
+
+def quat_from_vecs(v1: jax.Array, v2: jax.Array) -> el.Quaternion:
+    v1 = v1 / la.norm(v1)
+    v2 = v2 / la.norm(v2)
+    n = jnp.cross(v1, v2)
+    w = jnp.dot(v2, v2) * jnp.dot(v1, v1) + jnp.dot(v1, v2)
+    q = el.Quaternion.from_array(jnp.array([*n, w])).normalize()
+    return q
