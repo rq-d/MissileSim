@@ -288,25 +288,27 @@ class Rocket(el.Archetype):
     )
     thrust: Thrust = field(default_factory=lambda: jnp.float64(0.0))
 
-TargetState = ty.Annotated[
+
+
+# @el.dataclass
+# class Target(el.Archetype):
+#     target_state: TargetState = field(default_factory=lambda: jnp.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]))
+# Define a new "gravity edge" component type
+TgtState = el.Annotated[
     jax.Array,
     el.Component(
-        "target_state",
+        "tgt_state",
         el.ComponentType(el.PrimitiveType.F64, (6,)),
         metadata={"element_names": "x,y,z,vx,vy,vz", "priority": 20},
-    ),
-]
+    ),]
 
 @el.dataclass
-class Target(el.Archetype):
-    target_state: TargetState = field(default_factory=lambda: jnp.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]))
+class TargetState(el.Archetype):
+    state: TgtState
+   
 
-# this function will make target state accessible
-# added shape since that attribute is unique to target
-@el.map
-def target_state(p: el.WorldPos,v: el.WorldVel) -> TargetState:
-    state = jnp.array([p.linear()[0], p.linear()[1], p.linear()[2], p.linear()[3], p.linear()[4], p.linear()[5]])
-    return state
+    def __init__(self, a: el.WorldPos, b: el.WorldVel):
+        self.state = TgtState(a)
 
 @el.map
 def gravity(f: el.Force, inertia: el.Inertia) -> el.Force:
@@ -554,12 +556,13 @@ def world(seed: int = 0) -> el.World:
             [
                 el.Body(world_pos=el.SpatialTransform(linear=jnp.array([LANDATX, 0.0, 1.0]))), # moved closer 100 meters
                 el.Shape(ball_mesh, ball_color),
-                Target(),
+                
             ],
             name="target",
         )
 
     # w.spawn(el.Line3d(rocket, line_width=11.0))
+    w.spawn(TargetState(target), name="tgt->pronav")
 
     w.spawn(
         el.Panel.hsplit(
@@ -599,7 +602,6 @@ def world(seed: int = 0) -> el.World:
 
 non_effectors = (
     mach
-    | target_state
     | angle_of_attack
     | accel_setpoint_smooth
     | v_rel_accel
