@@ -287,7 +287,7 @@ class Rocket(el.Archetype):
         default_factory=lambda: jnp.array([0.0,0.0])
     )
     thrust: Thrust = field(default_factory=lambda: jnp.float64(0.0))
-
+    
 TargetState = ty.Annotated[
     jax.Array,
     el.Component(
@@ -456,9 +456,8 @@ def accel_setpoint_smooth(a: AccelSetpoint, a_s: AccelSetpointSmooth) -> AccelSe
     return a_s + (a - a_s) * jnp.exp(-exp_decay_constant * dt)
 
 @el.map
-def pronav_setpoint(accel: ProNavSetpoint, p: el.WorldPos, v:el.WorldVel) -> ProNavSetpoint:
+def pronav_setpoint(accel: ProNavSetpoint, p: el.WorldPos, v:el.WorldVel, tgt: TargetState) -> ProNavSetpoint:
 
-    # posst
     # target
     r_t = jnp.array([LANDATX, 0.0, 1.0]) # lands at 16625
     v_t = jnp.array([0,0,0])
