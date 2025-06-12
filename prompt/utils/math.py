@@ -3,6 +3,7 @@ import jax
 import jax.numpy as jnp
 import jax.numpy.linalg as la
 import elodin as el
+import polars as pl
 
 def euler_to_quat(angles: jax.Array) -> el.Quaternion:
     [roll, pitch, yaw] = jnp.deg2rad(angles)
@@ -18,3 +19,10 @@ def euler_to_quat(angles: jax.Array) -> el.Quaternion:
     y = cr * sp * cy + sr * cp * sy
     z = cr * cp * sy - sr * sp * cy
     return el.Quaternion(jnp.array([x, y, z, w]))
+
+# coverts `val` to a coordinate along some series `s`
+def to_coord(s: pl.Series, val: jax.Array) -> jax.Array:
+    s_min = s.min()
+    s_max = s.max()
+    s_count = len(s.unique())
+    return (val - s_min) * (s_count - 1) / jnp.clip(s_max - s_min, 1e-06)

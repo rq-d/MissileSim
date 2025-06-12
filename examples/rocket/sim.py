@@ -9,6 +9,8 @@ import polars as pl
 from jax.scipy.ndimage import map_coordinates
 import matplotlib.pyplot as plt
 import numpy as np
+import csv
+import os
 
 SIM_TIME_STEP = 1.0 / 120.0
 BALL_RADIUS = 1
