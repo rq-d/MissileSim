@@ -1,6 +1,33 @@
 # Missile Sim
+# Quickstart
 
+Clone this branch and cd into it
+```
+git clone -b prompt git@github.com:rq-d/MissileSim.git
+cd MissileSim
+```
 
+The `prompt` folder contains everything needed for this example. To run the visualized version of the sim. Call the file `prompt/main.py` as so. I have the elodin executable placed at the top level of this repository, so no need to change directories again.
+```
+./elodin editor prompt/main.py
+```
+
+I placed two more scripts in there called plot.py and monte.py. The former is used to test new features and updates, the latter is used to gather data over more runs. monte.py also saves figures and input/output values in `prompt/photos`. It's currently set up to take uniform random samples of a few variables that impact the flight path, including the launch angle.
+```
+python3 prompt/monte.py
+```
+
+# RFD Request For Discussion
+_
+authors: Raul Quintana
+state:prediscussion
+_
+
+- architecture, utils folder, models folder, sim and main files
+- motor from the link
+- implemented a vertical guidance law in this example but the current rocket is sensitive to moderate fin deflections. Thus pronav works at times but usually causes instability. Its in rocket.py but is inactive.
+- Had difficulty getting the target state into the pronav model(component). I believe the 3-body example is doing this by using a fold function. The ball example only has one physical entity (the ball itself) so i couldnt find the pattern im looking for there. I decided to move on since the focus of this prompt is to explore the range of an unguided rocket, thus I put a static target position in the model as a temporary hack. Guidance would be a fun feature to have so i left a working rocket with pronav applied to the vertical PID controller in examples/rocket/sim.py as well, run it with elodin editor examples/rocket/main.py if curious
+- 
 
 # Notes
 ### Motor:
@@ -31,13 +58,13 @@ Modeled a 4mm carbon airframe around the rocket (motor, electronics, warhead). A
 
 - Final Mass: 18.98kg
 - Principal moments of inertia at center of mass (SW coordinate system is rotated differently than body frame. origin at missile base)
-  - 0.01, 2.39, 2.39 Px, Py, Pz
+  - 0.03, 10.52, 10.52 Px, Py, Pz
 
 Aero and Mass Properties
 
 - using aero coefficients and math from example given.
 - Mass properties are coming from the solidworks assembly.
-
+- `Coordinate 2` is placed at the rocket tip with x facing the direction of flight
 
 ![alt text](prompt/photos/missile.PNG "Title")
 

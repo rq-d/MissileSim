@@ -9,7 +9,7 @@ from sim import system, world
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--seed", type=int, default=0)
-parser.add_argument("--ticks", type=int, default=10000)
+parser.add_argument("--ticks", type=int, default=15000)
 args = parser.parse_args()
 
 exec = world(args.seed).build(system())
