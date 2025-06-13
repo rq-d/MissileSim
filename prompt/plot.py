@@ -14,8 +14,9 @@ args = parser.parse_args()
 # seed = random.seed(1)
 randpitch = random.randint(45,70)
 # exec = world(takeOffPitch=randpitch).build(system())
-exec = world(takeOffPitch=70.0, targetX=-12000.0).build(system())
-exec.run(12000)
+exec = world(takeOffPitch=68.26872848822481, targetX=-12000.0).build(system())
+
+exec.run(10000)
 
 # get missile data
 df = exec.history("world_pos", el.EntityId(1))

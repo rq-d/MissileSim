@@ -21,6 +21,8 @@ lp_buffer_size = lp_sample_freq * 4
 lp_cutoff_freq = 1
 PRONAVGAIN = 5
 pitch_pid = [0.01, 0.02,1.8]
+pitch_pid = [0.0,0.0,0.0]
+# pitch_pid = [0.05, 0.01,0.0]
 
 LANDATX = -12000 # TODO MAKE THIS AN INPUT THIS IS TEMPORARY TARGET LOCATION
 
@@ -294,8 +296,8 @@ def pronav_setpoint(accel: ProNavSetpoint, p: el.WorldPos, v:el.WorldVel) -> Pro
 
     # applies ProNav when distance is close to target
     return jax.lax.cond(
-        dist2target < 7000.0,    # condition to be met
-        # False, # always on
+        # dist2target < 7000.0,    # condition to be met
+        False, # always on
         lambda _: accel,   # if true return value
         lambda _: jnp.array([0.0,0.0]),    # if false return valuec
         operand=None,

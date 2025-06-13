@@ -28,7 +28,7 @@ def world(takeOffPitch: float = 70.0, missileMass: float = 16.0, targetX = -1200
         linear=jnp.array([0.0, 0.0, 0.0]),
         ),
         # inertia=el.SpatialInertia(missileMass, jnp.array([5, 200.00, 20.00])), 
-        inertia=el.SpatialInertia(missileMass, jnp.array([0.1, 4, 4])), 
+        inertia=el.SpatialInertia(missileMass, jnp.array([0.1, 10, 10 ])), 
         # inertia=el.SpatialInertia(3.0, jnp.array([0.1, 1.0, 1.0])),
       ),
       models.rocket.Rocket(),
