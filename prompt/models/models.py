@@ -12,7 +12,7 @@ def gravity(f: el.Force, inertia: el.Inertia) -> el.Force:
 def ground(p: el.WorldPos, v: el.WorldVel) -> el.WorldVel:
     return jax.lax.cond(
         jax.lax.max(p.linear()[2], v.linear()[2]) < 0.0,
-        lambda _: el.SpatialMotion(linear=v.linear() * jnp.array([1.0, 1.0, -1.0]) * 0.001),
+        lambda _: el.SpatialMotion(linear=v.linear() * jnp.array([1.0, 1.0, -1.0]) * 0.0001),
         lambda _: v,
         operand=None,
     )

@@ -11,10 +11,11 @@ import random
 parser = argparse.ArgumentParser()
 args = parser.parse_args()
 
-seed = random.seed(1)
-takeoffPitch = random.randint(45,70)
-exec = world(takeoffPitch).build(system())
-exec.run(50000)
+# seed = random.seed(1)
+randpitch = random.randint(45,70)
+# exec = world(takeOffPitch=randpitch).build(system())
+exec = world(takeOffPitch=70.0, targetX=-12000.0).build(system())
+exec.run(12000)
 
 # get missile data
 df = exec.history("world_pos", el.EntityId(1))
@@ -71,6 +72,14 @@ ax.set_title('3D Line Plot')
 
 
 
+plt.figure()
+plt.plot(ticks, exec.history("angle_of_attack", el.EntityId(1)))
+plt.title('alpha')
+
+# plt.figure()
+# df = exec.history("pronav_setpoint", el.EntityId(1))
+# plt.plot(ticks, df[:,0])
+# plt.title('pronav command')
 
 plt.show()
 

@@ -35,3 +35,6 @@ Aero and Mass Properties
 
 - using aero coefficients and math from example given.
 - Mass properties are coming from my solidworks model.
+
+I reduced the aero moment to make the missile stable
+f_aero_torque = jnp.array([Cl, -CmR, CnR]) _ q _ a_ref _ l_ref _ 0.2

@@ -15,14 +15,14 @@ thrust_vector_body_frame = jnp.array([-1.0, 0.0, 0.0])
 a_ref = 24.89130 / 100**2 #  reference area from cfd
 l_ref = 5.43400 / 100
 xmc = 0.40387
-SIM_TIME_STEP = 1.0 / 60.0
+SIM_TIME_STEP = 1.0 / 120.0
 lp_sample_freq = round(1.0 / SIM_TIME_STEP)
 lp_buffer_size = lp_sample_freq * 4
 lp_cutoff_freq = 1
-PRONAVGAIN = 24
-pitch_pid = [0.05, 0.0,0.0]
+PRONAVGAIN = 5
+pitch_pid = [0.01, 0.02,1.8]
 
-LANDATX = 10000 # TODO MAKE THIS AN INPUT THIS IS TEMPORARY TARGET LOCATION
+LANDATX = -12000 # TODO MAKE THIS AN INPUT THIS IS TEMPORARY TARGET LOCATION
 
 aero_df = pl.from_dict({
     'Mach': [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9],
@@ -294,8 +294,8 @@ def pronav_setpoint(accel: ProNavSetpoint, p: el.WorldPos, v:el.WorldVel) -> Pro
 
     # applies ProNav when distance is close to target
     return jax.lax.cond(
-        # dist2target < 7000.0,    # condition to be met
-        False, # always on
+        dist2target < 7000.0,    # condition to be met
+        # False, # always on
         lambda _: accel,   # if true return value
         lambda _: jnp.array([0.0,0.0]),    # if false return valuec
         operand=None,

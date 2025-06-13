@@ -25,10 +25,12 @@ l_ref = 5.43400 / 100
 xmc = 0.40387
 
 TAKEOFF_ANGLE = 70.0
-LANDATX = -18000.0
-PRONAVGAIN = 25
+LANDATX = -12000.0
+PRONAVGAIN = 5
 
 pitch_pid = [0.01, 0.02,1.8]  # 1.5 meter miss params
+# pitch_pid = [0, 0,0]  # 1.5 meter miss params
+
 
 Wind = ty.Annotated[
     jax.Array,
@@ -157,11 +159,32 @@ aero_df = pl.from_dict({
     'CZR': [-1.092, -0.3878, 0.3984, 1.141, -1.141, -0.4069, 0.7324, 2.176, 0.0, 1.061, 2.368, 3.494, 1.141, 1.561, 2.483, 3.64, 1.092, 1.789, 2.577, 3.68, -1.191, -0.4161, 0.4355, 1.252, -1.274, -0.4526, 0.8073, 2.408, 0.0, 1.178, 2.63, 3.88, 1.274, 1.736, 2.755, 4.043, 1.191, 1.973, 2.844, 4.07, -1.609, -0.8494, 0.1373, 1.323, -1.639, -0.5395, 0.9159, 2.704, 0.0, 1.304, 2.894, 4.443, 1.639, 2.532, 3.576, 4.981, 1.609, 2.483, 3.481, 4.811]
 })  # fmt: skip
 
-thrust_curve = {
-    'time': [0.01, 0.67, 1.33, 1.99, 2.65, 3.31, 3.97, 4.63, 5.29, 5.95, 6.61, 7.27, 7.93, 8.59, 9.25, 9.91, 10.57 ,11.23, 11.89, 12.55, 13.21, 13.87, 14.53, 15.19, 15.85, 16.51, 17.17, 17.83, 18.49, 19.15, 19.81, 20.47, 21.13, 21.79, 22.45, 23.11, 23.77, 24.43, 25.09, 25.75, 26.41, 27.07, 27.73, 28.39, 29.05, 29.71, 30.37, 31.03, 31.69, 32.15],
-    'thrust': [322.148, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 0.0],
-}  # fmt: skip
+# thrust_curve = {
+#     'time': [0.01, 0.67, 1.33, 1.99, 2.65, 3.31, 3.97, 4.63, 5.29, 5.95, 6.61, 7.27, 7.93, 8.59, 9.25, 9.91, 10.57 ,11.23, 11.89, 12.55, 13.21, 13.87, 14.53, 15.19, 15.85, 16.51, 17.17, 17.83, 18.49, 19.15, 19.81, 20.47, 21.13, 21.79, 22.45, 23.11, 23.77, 24.43, 25.09, 25.75, 26.41, 27.07, 27.73, 28.39, 29.05, 29.71, 30.37, 31.03, 31.69, 32.15],
+#     'thrust': [322.148, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 88.426, 0.0],
+# }  # fmt: skip
+# TODO fix pathing and put this in utilities
+def parse(filename):
+  data = {
+      "time": [],
+      "thrust": []
+  }
 
+  # Replace with your actual file name
+  with open(filename, mode='r', newline='') as csvfile:
+      reader = csv.reader(csvfile)
+      
+      for row in reader:
+          if len(row) != 2:
+              continue  # Skip malformed rows
+          
+          time_val = row[0].strip()
+          thrust_val = row[1].strip()
+          
+          data["time"].append(float(time_val))
+          data["thrust"].append(float(thrust_val))
+  return data
+thrust_curve = parse(os.path.dirname(os.path.abspath(__file__))+"/data/AeroTech_M685W.txt")
 
 def second_order_butterworth(
     signal: jax.Array, f_sampling: int, f_cutoff: int, method: str = "forward"
@@ -482,8 +505,8 @@ def pronav_setpoint(accel: ProNavSetpoint, p: el.WorldPos, v:el.WorldVel) -> Pro
 
     # applies ProNav when distance is close to target
     return jax.lax.cond(
-        dist2target < 7000.0,    # condition to be met
-        # True,
+        # dist2target < 7000.0,    # condition to be met
+        False,
         lambda _: accel,   # if true return value
         lambda _: jnp.array([0.0,0.0]),    # if false return valuec
         operand=None,
@@ -541,7 +564,7 @@ def world(seed: int = 0) -> el.World:
                     angular=euler_to_quat(jnp.array([0.0, TAKEOFF_ANGLE, 0.0])),
                     linear=jnp.array([0.0, 0.0, 1.0]),
                 ),
-                inertia=el.SpatialInertia(3.0, jnp.array([0.1, 1.0, 1.0])),
+                inertia=el.SpatialInertia(16.0, jnp.array([0.1, 4, 4])),
             ),
             Rocket(),
             w.glb("https://storage.googleapis.com/elodin-assets/aim.glb"),
