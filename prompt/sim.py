@@ -15,7 +15,7 @@ import models.models
 # import models.rocket
 SIM_TIME_STEP = 1.0 / 120
 
-def world(takeOffPitch: float = 70.0, missileMass: float = 16.0, targetX = -12000.0) -> el.World:
+def world(takeOffPitch: float = 70.0, missileMass: float = 16.0, targetX = -10000.0, Ix = 0.03, Iyz = 10.52) -> el.World:
   w = el.World()
   ball_mesh = w.insert_asset(el.Mesh.sphere(0.4))
   ball_color = w.insert_asset(el.Material.color(12.7, 9.2, 0.5))
@@ -27,9 +27,7 @@ def world(takeOffPitch: float = 70.0, missileMass: float = 16.0, targetX = -1200
         angular=math.euler_to_quat(jnp.array([0,takeOffPitch,0.0])), #initial orientation
         linear=jnp.array([0.0, 0.0, 0.0]),
         ),
-        # inertia=el.SpatialInertia(missileMass, jnp.array([5, 200.00, 20.00])), 
-        inertia=el.SpatialInertia(missileMass, jnp.array([0.1, 10, 10 ])), 
-        # inertia=el.SpatialInertia(3.0, jnp.array([0.1, 1.0, 1.0])),
+        inertia=el.SpatialInertia(17.68, jnp.array([Ix, Iyz, Iyz ])), 
       ),
       models.rocket.Rocket(),
       w.glb("https://storage.googleapis.com/elodin-assets/rocket.glb"),   

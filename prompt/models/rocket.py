@@ -19,12 +19,12 @@ SIM_TIME_STEP = 1.0 / 120.0
 lp_sample_freq = round(1.0 / SIM_TIME_STEP)
 lp_buffer_size = lp_sample_freq * 4
 lp_cutoff_freq = 1
-PRONAVGAIN = 5
+PRONAVGAIN = 4
 pitch_pid = [0.01, 0.02,1.8]
-pitch_pid = [0.0,0.0,0.0]
+# pitch_pid = [0.0,0.0,0.0]
 # pitch_pid = [0.05, 0.01,0.0]
 
-LANDATX = -12000 # TODO MAKE THIS AN INPUT THIS IS TEMPORARY TARGET LOCATION
+LANDATX = -10000 # TODO MAKE THIS AN INPUT THIS IS TEMPORARY TARGET LOCATION
 
 aero_df = pl.from_dict({
     'Mach': [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9],
@@ -296,7 +296,7 @@ def pronav_setpoint(accel: ProNavSetpoint, p: el.WorldPos, v:el.WorldVel) -> Pro
 
     # applies ProNav when distance is close to target
     return jax.lax.cond(
-        # dist2target < 7000.0,    # condition to be met
+        # dist2target < 10000.0,    # condition to be met
         False, # always on
         lambda _: accel,   # if true return value
         lambda _: jnp.array([0.0,0.0]),    # if false return valuec
