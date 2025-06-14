@@ -47,6 +47,23 @@ Now it's time to write code. I began with a proposed directory structure to impr
 
 Similarly, each entity—such as the rocket or target—will have its own file (e.g., `rocket.py`, `target.py`) containing definitions specific to that entity. I also created a `utils` folder to store commonly used functions like coordinate transformations, math operations, and parsing tools. For now, it contains just a few transformation functions. Admittedly, I did not completely follow this design pattern due to time constraints but I believe it would improve modularity, and readability.
 
+```
+MissileSim/prompt
+├── main.py
+├── models
+│   ├── data
+│   │   └── AeroTech_M685W.txt
+│   ├── models.py
+│   ├── rocket.py
+│   └── target.py
+├── monte.py
+├── photos
+├── plot.py
+├── sim.py
+└── utils
+    └── math.py
+```
+
 Now that all the models are installed, I can begin testing the flight behavior. Without changing any parameters from the previously well-behaved and tuned template model, this version tumbles upon release. Since this motor produces roughly three times the thrust of the one used in the template rocket simulation, I wasn’t surprised that additional tuning would be necessary.
 
 To run the simulation faster than real time for quicker iteration, I wrote a script called `plot.py`, which executes the scenario in headless mode and plots key data.
