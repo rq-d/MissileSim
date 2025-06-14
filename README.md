@@ -84,14 +84,13 @@ Lastly, I wrote a top-level script called monte.py that takes random samples of 
 #### Complete Missile:
 - Modeled a 4mm carbon airframe around the rocket (motor, electronics, warhead). Adjusted length and weight distrubution to find a good Moment of Inertia
 - Final Mass: 18.98kg
-- Principal moments of inertia at center of mass (SW coordinate system is rotated differently than body frame. origin at missile base)
+- Principal moments of inertia at center of mass (SW coordinate system same as body frame)
   - 0.03, 10.52, 10.52 Px, Py, Pz
 
 #### Aero and Mass Properties
 - using aero coefficients and math from example given.
 - Mass properties are coming from the solidworks assembly.
 - `Coordinate 2` is placed at the rocket tip with x facing the direction of flight
-
 
 #### TODO
 - Turn wind model on
